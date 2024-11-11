@@ -1,7 +1,10 @@
-import { Text, View, Image, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { Text, View, Image, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 
 import moment from 'moment';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigation, useRouter } from 'expo-router';
+import axios from 'axios';
+import MenuCard from '@/components/MenuCard';
 
 
 export default function HomeScreen() {
@@ -10,6 +13,27 @@ export default function HomeScreen() {
   const [date, setDate] = useState("");
   const [nextDate, setNextDate] = useState("");
   const [selectedDate, setSelectedDate] = useState("")
+  const navigation = useNavigation();
+  const router = useRouter();
+  const [ menuData, setMenuData] = useState([]);
+
+  const fetchAllMenuData = async () => {
+    console.log("fetch called")
+    try
+    {
+      const response  = await axios.get("http://localhost:3000/menu/all");
+      setMenuData(response.data);
+      console.log(response.data)
+    }
+    catch(error)
+    {
+      console.log("Error",error)
+    }
+  }
+
+  // useEffect(() => {
+  //   fetchAllMenuData();
+  // }, [])
 
   const renderWeeksDates = (startOfweek: any) => {
     let weekDates = [];
@@ -18,21 +42,10 @@ export default function HomeScreen() {
       const formattedDate = date.format("ddd DD");
       const isCurrentDate = date.isSame(currentDate, 'days')
 
-      weekDates.push(
-        <View className='flex-row gap-5 m-2 w-full'>
-          <View className='h-10 w-10 bg-gray-400 rounded-xl  justify-center items-center'>
-            <Text>
-              {date.format("DD")}
-            </Text>
-            <Text style={{ fontSize: 11, fontWeight: 500, color: isCurrentDate ? "white" : "black" }}>
-              {date.format("ddd")}
-            </Text>
-          </View>
+      const menuForDate = menuData.find((menu) => menu.date == formattedDate)
 
-          <View className=' bg-gray-300 rounded-xl p-4'>
-            <Text>There is no menu</Text>
-          </View>
-        </View>
+      weekDates.push(
+        <MenuCard date={date} menuForDate={menuForDate} isCurrentDate={isCurrentDate} />
       )
     }
     return weekDates;
