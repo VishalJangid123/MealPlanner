@@ -1,10 +1,11 @@
 import { Text, View, Image, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 
 import moment from 'moment';
-import { useEffect, useState } from 'react';
-import { useNavigation, useRouter } from 'expo-router';
+import { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import axios from 'axios';
 import MenuCard from '@/components/MenuCard';
+import BottomSheet from '@/components/BottomSheet';
 
 
 export default function HomeScreen() {
@@ -16,6 +17,8 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const [ menuData, setMenuData] = useState([]);
+
+  const [showModal, setShowModal] = useState(false)
 
   const fetchAllMenuData = async () => {
     console.log("fetch called")
@@ -31,9 +34,20 @@ export default function HomeScreen() {
     }
   }
 
-  // useEffect(() => {
-  //   fetchAllMenuData();
-  // }, [])
+  useEffect(() => {
+    fetchAllMenuData();
+  }, [])
+
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     fetchAllMenuData();
+  //   }, []),
+  // );
+
+  const OnDeletePressed = () => {
+    console.log("Delete pressed")
+    setShowModal(true)
+  }
 
   const renderWeeksDates = (startOfweek: any) => {
     let weekDates = [];
@@ -45,7 +59,7 @@ export default function HomeScreen() {
       const menuForDate = menuData.find((menu) => menu.date == formattedDate)
 
       weekDates.push(
-        <MenuCard date={date} menuForDate={menuForDate} isCurrentDate={isCurrentDate} />
+        <MenuCard key={date} date={date} menuForDate={menuForDate} isCurrentDate={isCurrentDate} onDeletePressed={()=> OnDeletePressed()} />
       )
     }
     return weekDates;
@@ -76,7 +90,7 @@ export default function HomeScreen() {
         </View>
 
       </ScrollView>
-
+      <BottomSheet showModal={showModal} />
     </SafeAreaView>
   );
 }
