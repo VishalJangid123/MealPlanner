@@ -1,96 +1,109 @@
-import { Text, View, Image, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
-
-import moment from 'moment';
-import { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
-import axios from 'axios';
-import MenuCard from '@/components/MenuCard';
-import BottomSheet from '@/components/BottomSheet';
-
+import { Text, View, ScrollView, SafeAreaView } from "react-native";
+import moment from "moment";
+import { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
+import axios from "axios";
+import MenuCard from "@/components/MenuCard";
+import BottomSheet from "@/components/BottomSheet";
 
 export default function HomeScreen() {
   const currentDate = moment();
-  const startOfWeek = currentDate.clone().startOf('week');
-  const [date, setDate] = useState("");
-  const [nextDate, setNextDate] = useState("");
-  const [selectedDate, setSelectedDate] = useState("")
-  const navigation = useNavigation();
-  const router = useRouter();
-  const [ menuData, setMenuData] = useState([]);
-
-  const [showModal, setShowModal] = useState(false)
+  const startOfWeek = currentDate.clone().startOf("week");
+  const [menuData, setMenuData] = useState([]);
+  const [selectedDateToDelete, setSelectedDateToDelete] = useState();
+  const [showModal, setShowModal] = useState(false);
 
   const fetchAllMenuData = async () => {
-    console.log("fetch called")
-    try
-    {
-      const response  = await axios.get("http://localhost:3000/menu/all");
+    try {
+      const response = await axios.get("http://localhost:3000/menu/all");
       setMenuData(response.data);
-      console.log(response.data)
+    } catch (error) {
+      console.log("Error", error);
     }
-    catch(error)
-    {
-      console.log("Error",error)
-    }
-  }
+  };
 
   useEffect(() => {
     fetchAllMenuData();
-  }, [])
+  }, []);
 
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     fetchAllMenuData();
-  //   }, []),
-  // );
+  useFocusEffect(
+    useCallback(() => {
+      fetchAllMenuData();
+    }, [])
+  );
 
-  const OnDeletePressed = () => {
-    console.log("Delete pressed")
-    setShowModal(true)
-  }
+  const OnDeletePressed = (dateToDelete: any) => {
+    setSelectedDateToDelete(dateToDelete.date);
+    setShowModal(true);
+  };
+
+  const deleteItemsByDate = async () => {
+    try {
+      const dateToDelete = selectedDateToDelete;
+      const response = await axios.delete(
+        `http://localhost:3000/deleteItems/${dateToDelete}`
+      );
+
+      if (response.status == 200) {
+        setShowModal(false);
+        fetchAllMenuData();
+      } else {
+        console.log("Failed to delete the menu");
+      }
+    } catch (error) {
+      console.log("Errror", error);
+    }
+  };
 
   const renderWeeksDates = (startOfweek: any) => {
     let weekDates = [];
     for (let i = 0; i < 7; i++) {
-      const date = startOfweek.clone().add(i, 'days');
+      const date = startOfweek.clone().add(i, "days");
       const formattedDate = date.format("ddd DD");
-      const isCurrentDate = date.isSame(currentDate, 'days')
+      const isCurrentDate = date.isSame(currentDate, "days");
 
-      const menuForDate = menuData.find((menu) => menu.date == formattedDate)
+      const menuForDate = menuData.find(
+        (menu: { date: string }) => menu.date == formattedDate
+      );
 
       weekDates.push(
-        <MenuCard key={date} date={date} menuForDate={menuForDate} isCurrentDate={isCurrentDate} onDeletePressed={()=> OnDeletePressed()} />
-      )
+        <MenuCard
+          key={date}
+          date={date}
+          menuForDate={menuForDate}
+          isCurrentDate={isCurrentDate}
+          onDeletePressed={() => OnDeletePressed(menuForDate)}
+        />
+      );
     }
     return weekDates;
-  }
+  };
 
   const renderWeeks = (numWeeks: any) => {
     let weeks = [];
     for (let i = 0; i < numWeeks; i++) {
-      let te =
-        weeks.push(
-          <View>
-            <Text>
-              {startOfWeek.clone().add(i * 7, "days").format("DD MMM")}
-            </Text>
-            <Text>{renderWeeksDates(startOfWeek.clone().add(i * 7, "days"))}</Text>
-          </View>
-        )
+      let te = weeks.push(
+        <View key={i}>
+          <Text>
+            {renderWeeksDates(startOfWeek.clone().add(i * 7, "days"))}
+          </Text>
+        </View>
+      );
     }
     return weeks;
-  }
-
+  };
 
   return (
     <SafeAreaView>
       <ScrollView>
-        <View className="flex p-5">
-          {renderWeeks(3)}
-        </View>
-
+        <View className="flex p-5">{renderWeeks(3)}</View>
       </ScrollView>
-      <BottomSheet showModal={showModal} />
+      <BottomSheet
+        showModal={showModal}
+        setShowModel={setShowModal}
+        dateToDelete={selectedDateToDelete}
+        deleteCall={deleteItemsByDate}
+      />
     </SafeAreaView>
   );
 }
